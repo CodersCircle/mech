@@ -7,51 +7,62 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Health check route (Render needs this)
+app.get("/", (req, res) => {
+  res.status(200).send("Realtime Server Running");
+});
+
+// Create HTTP server
 const server = http.createServer(app);
 
+// IMPORTANT: attach socket AFTER server exists
 const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+  transports: ["websocket", "polling"],
 });
 
 let onlineWorkers = {};
 
-// worker connects
 io.on("connection", (socket) => {
-    console.log("Connected:", socket.id);
+  console.log("Worker connected:", socket.id);
 
-    socket.on("worker-online", (workerId) => {
-        onlineWorkers[workerId] = socket.id;
-        console.log("Worker online:", workerId);
-    });
+  // worker online
+  socket.on("worker-online", (workerId) => {
+    onlineWorkers[workerId] = socket.id;
+    console.log("Worker online:", workerId);
+  });
 
-    socket.on("disconnect", () => {
-        for (let id in onlineWorkers) {
-            if (onlineWorkers[id] === socket.id) {
-                delete onlineWorkers[id];
-            }
-        }
-    });
+  // new booking event
+  socket.on("new-booking", (bookingData) => {
+    console.log("Booking received:", bookingData);
 
-    socket.on("new-booking", (bookingData) => {
-        Object.values(onlineWorkers).forEach((workerSocket) => {
-            io.to(workerSocket).emit("booking-request", bookingData);
-        });
+    Object.values(onlineWorkers).forEach((workerSocket) => {
+      io.to(workerSocket).emit("booking-request", bookingData);
     });
+  });
 
-    socket.on("accept-booking", (data) => {
-        io.emit("booking-accepted", data);
-    });
+  // accept booking
+  socket.on("accept-booking", (data) => {
+    io.emit("booking-accepted", data);
+  });
+
+  // disconnect
+  socket.on("disconnect", () => {
+    for (let id in onlineWorkers) {
+      if (onlineWorkers[id] === socket.id) {
+        delete onlineWorkers[id];
+      }
+    }
+    console.log("Worker disconnected");
+  });
 });
 
-app.get("/", (req, res) => {
-    res.send("Realtime Server Running");
-});
+// Render dynamic port
+const PORT = process.env.PORT;
 
-const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log("Server started on port " + PORT);
 });
