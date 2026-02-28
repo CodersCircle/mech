@@ -1,10 +1,11 @@
 {
   "name": "mech",
   "version": "1.0.0",
-  "description": "Realtime dispatch server",
+  "private": true,
   "main": "server.js",
+  "type": "commonjs",
   "scripts": {
-    "start": "node server.js"
+    "start": "node ./server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
