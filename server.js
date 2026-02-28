@@ -1,11 +1,3 @@
-// Catch any uncaught errors and log them to Render's logs
-process.on('uncaughtException', (err) => {
-    console.error("Uncaught exception:", err);
-});
-process.on('unhandledRejection', (reason, promise) => {
-    console.error("Unhandled rejection at:", promise, "reason:", reason);
-});
-
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
@@ -68,13 +60,9 @@ io.on("connection", (socket) => {
     });
 });
 
-server.on('error', (err) => {
-    console.error("Server error:", err);
-});
-
 // Render dynamic port
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const PORT = process.env.PORT || 3000;
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log("Server started on port " + PORT);
 });
